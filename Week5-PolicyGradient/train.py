@@ -36,7 +36,7 @@ def train_model(config, gpu_id, save_dir, exp_name):
         model.load_state_dict(torch.load(os.path.join(save_dir, exp_name, "model")))
 
     # Optimizer and Loss Function
-    optimizer = optim.RMSProp(model.parameters(), lr=config['lr'], weight_decay=config['L2_hyperparam'] * (config['mb_size'] / x_train.size()[0]))
+    optimizer = optim.RMSprop(model.parameters(), lr=config['lr'])
 
     """ Trains an agent with (stochastic) Policy Gradients on Pong. Uses OpenAI Gym. """
     env = gym.make("Pong-v0")
@@ -59,13 +59,20 @@ def train_model(config, gpu_id, save_dir, exp_name):
             x = cur_x - prev_x
         prev_x = cur_x
 
-        # Feedforward through the policy network and sample an action from the returned probability
-        action_prob = model(x)
-        action = 2 if np.random.uniform() < action_prob else 3 # roll the dice!
+        x_torch = Variable(torch.from_numpy(x).float())
+
+        # Feedforward through the policy network
+        action_prob = model(x_torch)
+        
+        # Sample an action from the returned probability
+        if np.random.uniform() < action_prob.data.numpy():
+            action = 2
+        else:
+            action = 3
 
         # record the log-likelihoods
         y = 1 if action == 2 else 0 # a "fake label"
-        LL_list.append(y - action_prob) # grad that encourages the action that was taken to be taken
+        LL_list.append(y - action_prob) # grad that encourages the action that was taken to be taken        TODO: the tensor graph breaks here. Find a way to backpropagate the PG error.
 
         # step the environment and get new measurements
         observation, reward, done, info = env.step(action)
@@ -77,20 +84,25 @@ def train_model(config, gpu_id, save_dir, exp_name):
             episode_number += 1
 
             # stack together all inputs, hidden states, action gradients, and rewards for this episode
+            print(len(LL_list))
+            print(LL_list[:10])
             episode_LLs = np.vstack(LL_list)
+            print(episode_LLs.shape)
             episode_rewards = np.vstack(reward_list)
             LL_list, reward_list = [], [] # reset array memory
 
             # compute the discounted reward backwards through time
-            discounted_episode_rewards = utils.discount_rewards(episode_rewards)
+            discounted_episode_rewards = utils.discount_rewards(episode_rewards, config['gamma'])
             
             # standardize the rewards to be unit normal (helps control the gradient estimator variance)
             discounted_episode_rewards -= np.mean(discounted_episode_rewards)
             discounted_episode_rewards /= np.std(discounted_episode_rewards)
 
             # Computes the loss
-            episode_LL *= discounted_episode_rewards # modulate the gradient with advantage (PG magic happens right here.)
-            loss = torch.from_numpy(episode_LL)
+            print(episode_LLs.shape)
+            print(episode_rewards.shape)
+            episode_LLs *= discounted_episode_rewards # modulate the gradient with advantage (PG magic happens right here.)
+            loss = torch.from_numpy(episode_LLs)
 
             # Backpropagates to compute the gradients
             loss.backward()
