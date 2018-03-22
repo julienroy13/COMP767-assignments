@@ -37,13 +37,14 @@ def train_model(config, gpu_id, save_dir, exp_name):
 
     # Optimizer and Loss Function
     optimizer = optim.RMSprop(model.parameters(), lr=config['lr'])
+    loss_fn = nn.NLLLoss()
 
     """ Trains an agent with (stochastic) Policy Gradients on Pong. Uses OpenAI Gym. """
     env = gym.make("Pong-v0")
     observation = env.reset()
     
     prev_x = None # used in computing the difference frame
-    LL_list, reward_list = [], []
+    y_list, pred_list, reward_list = [], [], []
     running_reward = None
     reward_sum = 0
     episode_number = 0
@@ -63,6 +64,7 @@ def train_model(config, gpu_id, save_dir, exp_name):
 
         # Feedforward through the policy network
         action_prob = model(x_torch)
+        pred_list.append(action_prob)
         
         # Sample an action from the returned probability
         if np.random.uniform() < action_prob.data.numpy():
@@ -72,7 +74,7 @@ def train_model(config, gpu_id, save_dir, exp_name):
 
         # record the log-likelihoods
         y = 1 if action == 2 else 0 # a "fake label"
-        LL_list.append(y - action_prob) # grad that encourages the action that was taken to be taken        TODO: the tensor graph breaks here. Find a way to backpropagate the PG error.
+        y_list.append(y) # grad that encourages the action that was taken to be taken        TODO: the tensor graph breaks here. Find a way to backpropagate the PG error.
 
         # step the environment and get new measurements
         observation, reward, done, info = env.step(action)
@@ -84,28 +86,38 @@ def train_model(config, gpu_id, save_dir, exp_name):
             episode_number += 1
 
             # stack together all inputs, hidden states, action gradients, and rewards for this episode
-            print(len(LL_list))
-            print(LL_list[:10])
-            episode_LLs = np.vstack(LL_list)
-            print(episode_LLs.shape)
-            episode_rewards = np.vstack(reward_list)
-            LL_list, reward_list = [], [] # reset array memory
+            episode_pred = torch.stack(pred_list)
+            episode_y = Variable(torch.unsqueeze(torch.LongTensor(y_list), dim=1))
+            
+            episode_rewards = np.array(reward_list)
+            y_list, pred_list, reward_list = [], [], [] # reset array memory
 
             # compute the discounted reward backwards through time
-            discounted_episode_rewards = utils.discount_rewards(episode_rewards, config['gamma'])
+            episode_returns = utils.discount_rewards(episode_rewards, config['gamma'])
             
             # standardize the rewards to be unit normal (helps control the gradient estimator variance)
-            discounted_episode_rewards -= np.mean(discounted_episode_rewards)
-            discounted_episode_rewards /= np.std(discounted_episode_rewards)
+            episode_returns -= np.mean(episode_returns)
+            episode_returns /= np.std(episode_returns)
+
+            # send returns to torch
+            episode_returns = Variable(torch.unsqueeze(torch.from_numpy(episode_returns), dim=1).float())
 
             # Computes the loss
-            print(episode_LLs.shape)
-            print(episode_rewards.shape)
-            episode_LLs *= discounted_episode_rewards # modulate the gradient with advantage (PG magic happens right here.)
-            loss = torch.from_numpy(episode_LLs)
+            print("episode_pred.size() : {}".format(episode_pred.size()))
+            print("episode_y.size() : {}".format(episode_y.size()))
+            print("episode_returns.size() : {}".format(episode_returns.size()))
+
+            print("episode_pred.type() : {}".format(episode_pred.data.type()))
+            print("episode_y.data.type() : {}".format(episode_y.data.type()))
+            print("episode_returns.type() : {}".format(episode_returns.data.type()))
+            #loss = torch.mean((episode_y - episode_pred) * episode_returns) # modulate the gradient with advantage (PG magic happens right here.)
+            loss = loss_fn(episode_pred, episode_y)
+            print("loss.size() : {}".format(loss.size()))
+            time.sleep(1000)
 
             # Backpropagates to compute the gradients
             loss.backward()
+            print("HERE")
 
             # Performs parameter update every config['mb_size'] episodes
             if episode_number % config['mb_size'] == 0:
@@ -130,11 +142,11 @@ def train_model(config, gpu_id, save_dir, exp_name):
             observation = env.reset() # reset env
             prev_x = None
 
-        if reward != 0: # Pong has either +1 or -1 reward exactly when game ends.
-            if reward == -1:
-                print('ep {0}: game finished, reward: {1:.2f}'.format(episode_number, reward))
-            else:
-                print('ep {0}: game finished, reward: {1:.2f} !!!!!!!!!'.format(episode_number, reward))
+            if reward != 0: # Pong has either +1 or -1 reward exactly when game ends.
+                if reward == -1:
+                    print('ep {0}: game finished, reward: {1:.2f}'.format(episode_number, reward))
+                else:
+                    print('ep {0}: game finished, reward: {1:.2f} !!!!!!!!!'.format(episode_number, reward))
 
 
 
