@@ -105,27 +105,22 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
 
         # Layer 1
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=(3, 3), stride=1, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=5, kernel_size=(3, 3), stride=1, padding=1)
         self.pool1 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.bn1 = nn.BatchNorm2d(16)
+        self.bn1 = nn.BatchNorm2d(5)
 
         # Layer 2
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3, 3), stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=5, out_channels=10, kernel_size=(3, 3), stride=1, padding=1)
         self.pool2 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.bn2 = nn.BatchNorm2d(32)
-
+        self.bn2 = nn.BatchNorm2d(10)
+        """
         # Layer 3
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3), stride=1, padding=1)
         self.pool3 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
         self.bn3 = nn.BatchNorm2d(64)
-
-        # Layer 4
-        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 3), stride=1, padding=1)
-        self.pool4 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.bn4 = nn.BatchNorm2d(128)
-
+        """
         # Logistic Regression
-        self.fc = nn.Linear(128, 10)
+        self.fc = nn.Linear(10*20*20, 1)
 
         # Batch Norm on?
         self.batch_norm_on = is_batch_norm
@@ -136,7 +131,7 @@ class CNN(nn.Module):
         if verbose:
             print('\nModel Info ------------')
             print(self)
-            print("Total number of parameters : {:.2f} M".format(self.get_number_of_params() / 1e6))
+            print("Total number of parameters : {:.3f} k".format(self.get_number_of_params() / 1e3))
             print("Batch Norm activated : {}".format(self.batch_norm_on))
             print('---------------------- \n')
 
@@ -150,19 +145,15 @@ class CNN(nn.Module):
         out = self.pool2(F.relu(self.conv2(out)))
         if self.batch_norm_on:
             out = self.bn2(out)
-
+        """
         # Layer 3
         out = self.pool3(F.relu(self.conv3(out)))
         if self.batch_norm_on:
             out = self.bn3(out)
-
-        # Layer 4
-        out = self.pool4(F.relu(self.conv4(out)))
-        if self.batch_norm_on:
-            out = self.bn4(out)
+        """
 
         # Final classifier
-        out = F.log_softmax(self.fc(out.squeeze()), dim=1)
+        out = F.sigmoid(self.fc(out.view(-1)))
         
         return out
 
@@ -196,15 +187,6 @@ class CNN(nn.Module):
             total_params += total_size
 
         return total_params
-
-    def get_weights_L2_norm(self):
-
-            weights_L2_norm_squared = 0
-
-            for params in self.parameters():
-                weights_L2_norm_squared += torch.sum(params**2)
-
-            return torch.sqrt(weights_L2_norm_squared)
 
     def name(self):
         return "CNN"

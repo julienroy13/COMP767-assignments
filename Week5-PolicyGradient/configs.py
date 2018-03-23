@@ -37,11 +37,39 @@ myConfigs = (CarefulDict([
         "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
 
         "mb_size": 10,
-        "max_epochs": 800,
+        "max_updates": 1500,
 
         "lr": 1e-4,
         "momentum": 0.0,
         "dropout": 0.0, # put 0 for no dropout
+
+        "gamma": 0.99,
+
+        "optimizer": 'adam',
+
+        "is_early_stopping": False,  # True or False
+        "L2_hyperparam": 0,  # L2 hyperparameter for a full batch (entire dataset)
+
+        "save_plots": True,
+        "resume": False,
+        "render": False
+        }
+    ),
+
+    (1, {  # Imposed hyperparams for Assignment 2, Q1-c (CNN without BatchNorm)
+        "data_format": "array",  # "vector" or "array"
+        "input_size": 80*80,
+
+        "model_type": 'CNN',# CNN or MLP
+        "nonlinearity": "relu",  # "relu", "sigmoid", "tanh"
+        "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
+
+        "mb_size": 10,
+        "max_updates": 1500,
+
+        "lr": 1e-4,
+        "momentum": 0.0,
+        "is_batch_norm": False,
 
         "gamma": 0.99,
 
