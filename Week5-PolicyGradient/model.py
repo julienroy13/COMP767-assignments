@@ -63,7 +63,8 @@ class MLP(nn.Module):
             output = F.sigmoid(self.out(x)) # Probability of choosing action UP
 
         else:
-            output = F.log_softmax(self.out(x))
+            assert len(x.size()) == 1, "Out of the model should be 1D."
+            output = F.log_softmax(self.out(x), dim=0)
 
         return output
 

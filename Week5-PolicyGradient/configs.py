@@ -102,10 +102,13 @@ myConfigs = (CarefulDict([
         "momentum": 0.0,
         "dropout": 0.0, # put 0 for no dropout
 
-        "gamma": 0.99,
+        "gamma": 0.99, # Discount factor
+        'epsilon': 0.05, # For epsilon-greedy policy
+        'lambda': 0.9, # Eligibility parameter
 
         "L2_hyperparam": 0,  # L2 hyperparameter for a full batch (entire dataset)
 
+        "use_cuda": False,
         "save_plots": True,
         "resume": False,
         "render": False

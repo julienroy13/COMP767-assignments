@@ -38,19 +38,19 @@ def train_model(config, gpu_id, save_dir, exp_name):
         model.load_state_dict(torch.load(os.path.join(save_dir, exp_name, "model")))
 
     # If GPU is available, sends model and dataset on the GPU
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and config["use_cuda"]:
         model.cuda(gpu_id)
         print("USING GPU-{}".format(gpu_id))
 
     # Optimizer and Loss Function
     optimizer = optim.Adam(model.parameters(), lr=config['lr'])
+    loss_fn = nn.NLLLoss()
 
     """ Trains an agent with (stochastic) Policy Gradients on Pong. Uses OpenAI Gym. """
     env = gym.make("MountainCar-v0")
     observation = env.reset()
-    pdb.set_trace()
-    
-    y_list, LL_list, reward_list = [], [], []
+
+    LL_list, reward_list = [], []
     running_reward = None
     reward_sum = 0
     episode_number = 0
@@ -70,38 +70,26 @@ def train_model(config, gpu_id, save_dir, exp_name):
 
         if config['render']: env.render()
 
-        # preprocess the observation and set input to network to be difference image
-        cur_x = utils.preprocess(observation, data_format=config['data_format'])
-        if prev_x is None:
-            x = np.zeros(cur_x.shape)
-        else:
-            x = cur_x - prev_x
-        prev_x = cur_x
-
-        x_torch = Variable(torch.from_numpy(x).float(), requires_grad=False)
-        if config['data_format'] == "array":
-            x_torch = x_torch.unsqueeze(dim=0).unsqueeze(dim=0)
+        x = Variable(torch.from_numpy(observation).float(), requires_grad=False)
         
-        if torch.cuda.is_available():
-            x_torch = x_torch.cuda(gpu_id)
+        if torch.cuda.is_available() and config["use_cuda"] :
+            x = x.cuda(gpu_id)
 
         # Feedforward through the policy network
-        action_prob = model(x_torch)
+        action_prob = torch.unsqueeze(model(x), 0)
         
-        # Sample an action from the returned probability
-        if np.random.uniform() < action_prob.cpu().data.numpy():
-            action = 2 # UP
+        # Sample an action from the returned probability using epsilon-greedy policy
+        if np.random.uniform() < config['epsilon']:
+            action = Variable(torch.from_numpy(np.randint.uniform(0, 3)))
         else:
-            action = 3 # DOWN
+            action = torch.max(action_prob, 1)[1]
 
         # record the log-likelihoods
-        y = 1 if action == 2 else 0 # a "fake label"
-        NLL = -y*torch.log(action_prob) - (1-y)*torch.log(1 - action_prob)
+        NLL = loss_fn(action_prob, action)
         LL_list.append(NLL)
-        y_list.append(y) # grad that encourages the action that was taken to be taken        TODO: the tensor graph breaks here. Find a way to backpropagate the PG error.
 
         # step the environment and get new measurements
-        observation, reward, done, info = env.step(action)
+        observation, reward, done, info = env.step(int(action.cpu().data.numpy()))
         reward_sum += reward
 
         reward_list.append(reward) # record reward (has to be done after we call step() to get reward for previous action)
@@ -115,17 +103,14 @@ def train_model(config, gpu_id, save_dir, exp_name):
             for i in reversed(range(len(reward_list))):
                 R = config['gamma'] * R + reward_list[i]
                 Return_i = Variable(R)
-                if torch.cuda.is_available():
+                if torch.cuda.is_available() and config["use_cuda"] :
                     Return_i = Return_i.cuda(gpu_id)
-                loss = loss + (LL_list[i]*(Return_i)).sum() # .expand_as(LL_list[i])
+                loss = loss + (LL_list[i] * Return_i).squeeze()
             loss = loss / len(reward_list)
             print(loss)
 
             # Backpropagates to compute the gradients
             loss.backward()
-
-
-            y_list, LL_list, reward_list = [], [], [] # reset array memory
 
             # Performs parameter update every config['mb_size'] episodes
             if episode_number % config['mb_size'] == 0:
@@ -140,21 +125,18 @@ def train_model(config, gpu_id, save_dir, exp_name):
                 print("PARAMETER UPDATE ------------ {}".format(stop - start))
                 start = time.time()
 
-                utils.save_results(save_dir, exp_name, loss_tape, our_score_tape, opponent_score_tape, config)
-
+                utils.save_results_MOUNTAINCAR(save_dir, exp_name, loss_tape, episode_lengths, config)
                 update += 1
                 if update % 10 == 0: 
                     torch.save(model.state_dict(), os.path.join(save_dir, exp_name, "model_"+model.name()))
                 
             # Records the average loss and score of the episode
             loss_tape.append(loss.cpu().data.numpy())
+            episode_lengths.append(len(reward_list))
 
-            our_score_tape.append(our_score)
-            opponent_score_tape.append(opponent_score)
-            our_score = 0
-            opponent_score = 0
+            LL_list, reward_list = [], [] # reset array memory
 
-            # boring book-keeping
+            # More book-keeping
             if running_reward is None:
                 running_reward = reward_sum
             else:
@@ -163,16 +145,6 @@ def train_model(config, gpu_id, save_dir, exp_name):
             
             reward_sum = 0
             observation = env.reset() # reset env
-            prev_x = None
-
-        if reward != 0: # Pong has either +1 or -1 reward exactly when game ends.
-            if reward == -1:
-                opponent_score += 1
-                print('ep {0}: game finished, reward: {1:.2f}'.format(episode_number, reward))
-            else:
-                our_score += 1
-                print('ep {0}: game finished, reward: {1:.2f} !!!!!!!!!'.format(episode_number, reward))
-
 
 
 

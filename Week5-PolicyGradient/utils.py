@@ -86,7 +86,7 @@ def save_results_MOUNTAINCAR(save_dir, exp_name, loss_tape, episode_lengths, con
     plt.legend(loc='best')
 
     plt.subplot(1,2,2)
-    plt.title("Score", fontweight='bold')
+    plt.title("Number of steps", fontweight='bold')
     plt.plot(episode_lengths, color="blue", label="Agent")
     plt.xlabel("Episodes")
     plt.legend(loc='best')
