@@ -42,6 +42,8 @@ class MLP(nn.Module):
         # Initializes the parameters
         self.init_parameters(init_type)
 
+        self.out_size = out_size
+
         if verbose:
             print('\nModel Info ------------')
             print(self)
@@ -57,7 +59,11 @@ class MLP(nn.Module):
             if self.do_dropout:
                 x = self.drop(x)
 
-        output = F.sigmoid(self.out(x)) # Probability of choosing action UP
+        if self.out_size == 1:
+            output = F.sigmoid(self.out(x)) # Probability of choosing action UP
+
+        else:
+            output = F.log_softmax(self.out(x))
 
         return output
 

@@ -29,7 +29,7 @@ def discount_rewards(r, gamma):
         discounted_r[t] = running_add
     return discounted_r
 
-def save_results(save_dir, exp_name, loss_tape, our_score_tape, opponent_score_tape, config):
+def save_results_PONG(save_dir, exp_name, loss_tape, our_score_tape, opponent_score_tape, config):
 
     # Creates the folder if necessary
     saving_dir = os.path.join(save_dir, exp_name)
@@ -65,6 +65,42 @@ def save_results(save_dir, exp_name, loss_tape, our_score_tape, opponent_score_t
             'loss_tape': loss_tape,
             'our_score_tape': our_score_tape,
             'opponent_score_tape': opponent_score_tape,
+            }, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    return
+
+def save_results_MOUNTAINCAR(save_dir, exp_name, loss_tape, episode_lengths, config):
+
+    # Creates the folder if necessary
+    saving_dir = os.path.join(save_dir, exp_name)
+    if not os.path.exists(saving_dir):
+        os.makedirs(saving_dir)
+
+    # Creates and save the plots
+    plt.figure(figsize=(20, 6))
+
+    plt.subplot(1,2,1)
+    plt.title("Loss", fontweight='bold')
+    plt.plot(loss_tape, color="blue", label="Agent")
+    plt.xlabel("Episodes")
+    plt.legend(loc='best')
+
+    plt.subplot(1,2,2)
+    plt.title("Score", fontweight='bold')
+    plt.plot(episode_lengths, color="blue", label="Agent")
+    plt.xlabel("Episodes")
+    plt.legend(loc='best')
+
+    plt.savefig(os.path.join(saving_dir, exp_name + '.png'), bbox_inches='tight')
+    plt.close()
+
+    # Save the recording tapes (learning curves) in a file
+    log_file = os.path.join(saving_dir, 'log_' + exp_name + '.pkl')
+    with open(log_file, 'wb') as f:
+        pickle.dump({
+            'config': config,
+            'loss_tape': loss_tape,
+            'episode_lengths': episode_lengths,
             }, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     return

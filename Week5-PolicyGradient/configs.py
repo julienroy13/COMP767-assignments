@@ -30,6 +30,7 @@ myConfigs = (CarefulDict([
     (0, {  # Imposed hyperparams for Assignment 2, Q1-c (CNN without BatchNorm)
         "data_format": "vector",  # "vector" or "array"
         "input_size": 80*80,
+        "output_size": 1,
 
         "model_type": 'MLP',# CNN or MLP
         "hidden_layers": [200],
@@ -59,6 +60,7 @@ myConfigs = (CarefulDict([
     (1, {  # Imposed hyperparams for Assignment 2, Q1-c (CNN without BatchNorm)
         "data_format": "array",  # "vector" or "array"
         "input_size": 80*80,
+        "output_size": 1,
 
         "model_type": 'CNN',# CNN or MLP
         "nonlinearity": "relu",  # "relu", "sigmoid", "tanh"
@@ -83,6 +85,33 @@ myConfigs = (CarefulDict([
         "render": False
         }
     ),
+
+    (2, {  # MOUNTAIN-CAR
+        "input_size": 2,
+        "output_size": 3,
+
+        "model_type": 'MLP',# CNN or MLP
+        "hidden_layers": [200, 50],
+        "nonlinearity": "sigmoid",  # "relu", "sigmoid", "tanh"
+        "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
+
+        "mb_size": 10,
+        "max_updates": 1500,
+
+        "lr": 1e-4,
+        "momentum": 0.0,
+        "dropout": 0.0, # put 0 for no dropout
+
+        "gamma": 0.99,
+
+        "L2_hyperparam": 0,  # L2 hyperparameter for a full batch (entire dataset)
+
+        "save_plots": True,
+        "resume": False,
+        "render": False
+        }
+    ),
+
 
 
 
