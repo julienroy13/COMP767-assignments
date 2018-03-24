@@ -14,6 +14,7 @@ import argparse
 import math
 import time
 import pdb
+import matplotlib.pyplot as plt
 
 import numpy as np
 import gym
@@ -46,7 +47,6 @@ def train_model(config, gpu_id, save_dir, exp_name):
     optimizer = optim.Adam(model.parameters(), lr=config['lr'])
     loss_fn = nn.NLLLoss()
 
-    """ Trains an agent with (stochastic) Policy Gradients on Pong. Uses OpenAI Gym. """
     env = gym.make("MountainCar-v0")
     observation = env.reset()
 
@@ -60,15 +60,14 @@ def train_model(config, gpu_id, save_dir, exp_name):
     # Initializing recorders
     update = 0
     loss_tape = []
-    our_score_tape = []
-    opponent_score_tape = []
-    our_score = 0
-    opponent_score = 0
+    episode_lengths = []
 
     # TRAINING LOOP
     while update < config['max_updates']:
 
-        if config['render']: env.render()
+        if config['render']: 
+            screen = env.render(mode='rgb_array')
+            plt.imsave("test.png", env.render(mode='rgb_array'))
 
         x = Variable(torch.from_numpy(observation).float(), requires_grad=False)
         
@@ -80,9 +79,12 @@ def train_model(config, gpu_id, save_dir, exp_name):
         
         # Sample an action from the returned probability using epsilon-greedy policy
         if np.random.uniform() < config['epsilon']:
-            action = Variable(torch.from_numpy(np.randint.uniform(0, 3)))
+            action = Variable(torch.IntTensor(np.random.randint(low=0, high=3, size=(1,)))).long()
         else:
-            action = torch.max(action_prob, 1)[1]
+            action = torch.max(action_prob, 1)[1].long()
+
+        if torch.cuda.is_available() and config["use_cuda"] :
+            action = action.cuda(gpu_id)
 
         # record the log-likelihoods
         NLL = loss_fn(action_prob, action)
@@ -107,7 +109,6 @@ def train_model(config, gpu_id, save_dir, exp_name):
                     Return_i = Return_i.cuda(gpu_id)
                 loss = loss + (LL_list[i] * Return_i).squeeze()
             loss = loss / len(reward_list)
-            print(loss)
 
             # Backpropagates to compute the gradients
             loss.backward()
@@ -122,10 +123,11 @@ def train_model(config, gpu_id, save_dir, exp_name):
                 optimizer.zero_grad()
 
                 stop = time.time()
-                print("PARAMETER UPDATE ------------ {}".format(stop - start))
+                print("PARAMETER UPDATE ------------ Time takes : {}s".format(int(stop - start)))
                 start = time.time()
 
-                utils.save_results_MOUNTAINCAR(save_dir, exp_name, loss_tape, episode_lengths, config)
+                if config['save_plots']:
+                    utils.save_results_MOUNTAINCAR(save_dir, exp_name, loss_tape, episode_lengths, config)
                 update += 1
                 if update % 10 == 0: 
                     torch.save(model.state_dict(), os.path.join(save_dir, exp_name, "model_"+model.name()))
@@ -145,7 +147,6 @@ def train_model(config, gpu_id, save_dir, exp_name):
             
             reward_sum = 0
             observation = env.reset() # reset env
-
 
 
 if __name__ == "__main__":

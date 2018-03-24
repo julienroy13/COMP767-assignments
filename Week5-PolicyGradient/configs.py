@@ -92,7 +92,7 @@ myConfigs = (CarefulDict([
 
         "model_type": 'MLP',# CNN or MLP
         "hidden_layers": [200, 50],
-        "nonlinearity": "sigmoid",  # "relu", "sigmoid", "tanh"
+        "nonlinearity": "relu",  # "relu", "sigmoid", "tanh"
         "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
 
         "mb_size": 10,
@@ -111,7 +111,7 @@ myConfigs = (CarefulDict([
         "use_cuda": False,
         "save_plots": True,
         "resume": False,
-        "render": False
+        "render": True
         }
     ),
 
