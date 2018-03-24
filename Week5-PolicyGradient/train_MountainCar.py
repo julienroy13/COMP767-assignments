@@ -61,6 +61,9 @@ def train_model(config, gpu_id, save_dir, exp_name):
     update = 0
     loss_tape = []
     episode_lengths = []
+    action_count = np.zeros(shape=(3,))
+    exploit_count = 0
+    explore_count = 0
 
     # TRAINING LOOP
     while update < config['max_updates']:
@@ -78,15 +81,20 @@ def train_model(config, gpu_id, save_dir, exp_name):
         action_prob = torch.unsqueeze(model(x), 0)
         
         # Sample an action from the returned probability using epsilon-greedy policy
-        if np.random.uniform() < config['epsilon']:
-            action = Variable(torch.IntTensor(np.random.randint(low=0, high=3, size=(1,)))).long()
-        else:
+        if np.random.uniform() < torch.max(action_prob, 1)[0].cpu().data.numpy():
             action = torch.max(action_prob, 1)[1].long()
+            exploit_count += 1
+        else:
+            action = Variable(torch.IntTensor(np.random.randint(low=0, high=3, size=(1,)))).long()
+            explore_count += 1
+
+        action_count[action.cpu().data.numpy()] += 1
 
         if torch.cuda.is_available() and config["use_cuda"] :
             action = action.cuda(gpu_id)
 
         # record the log-likelihoods
+        action_prob = torch.log(action_prob)
         NLL = loss_fn(action_prob, action)
         LL_list.append(NLL)
 
@@ -143,9 +151,12 @@ def train_model(config, gpu_id, save_dir, exp_name):
                 running_reward = reward_sum
             else:
                 running_reward = running_reward * 0.99 + reward_sum * 0.01
-            print('resetting env. episode reward total was {0:.2f}. running mean: {1:.2f}'.format(reward_sum, running_reward))
+            print('resetting env. episode reward total was {0:.2f}. running mean: {1:.2f}. \n\tAction count: {2}\n\tExplore-Exploit: ({3} ; {4})'.format(reward_sum, running_reward, action_count, explore_count, exploit_count))
             
             reward_sum = 0
+            action_count = np.zeros(shape=(3,))
+            exploit_count = 0
+            explore_count = 0
             observation = env.reset() # reset env
 
 

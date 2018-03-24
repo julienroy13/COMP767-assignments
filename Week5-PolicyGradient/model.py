@@ -64,7 +64,7 @@ class MLP(nn.Module):
 
         else:
             assert len(x.size()) == 1, "Out of the model should be 1D."
-            output = F.log_softmax(self.out(x), dim=0)
+            output = F.softmax(self.out(x), dim=0)
 
         return output
 
