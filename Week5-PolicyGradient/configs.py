@@ -67,6 +67,26 @@ myConfigs = (CarefulDict([
         }
     ),
 
+    (2, {  # ACROBOT
+        "env_name": "Acrobot-v1", # Gym environment
+
+        "hidden_layers": [128],
+
+        "mb_size": 1,
+        "max_episodes": 5000,
+
+        "lr": 1e-3,
+
+        "gamma": 0.99, # Discount factor
+        'lambda': 0.9, # Eligibility parameter
+
+        "use_cuda": False,
+        'chkp_freq': 100,
+        "resume": False,
+        "render": False
+        }
+    ),
+
 
 
 
