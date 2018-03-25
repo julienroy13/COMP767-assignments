@@ -27,118 +27,43 @@ class CarefulDict(dict):
 
 myConfigs = (CarefulDict([
 
-    (0, {  # Imposed hyperparams for Assignment 2, Q1-c (CNN without BatchNorm)
-        "data_format": "vector",  # "vector" or "array"
-        "input_size": 80*80,
-        "output_size": 1,
-
-        "model_type": 'MLP',# CNN or MLP
-        "hidden_layers": [200],
-        "nonlinearity": "relu",  # "relu", "sigmoid", "tanh"
-        "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
-
-        "mb_size": 10,
-        "max_updates": 1500,
-
-        "lr": 1e-4,
-        "momentum": 0.0,
-        "dropout": 0.0, # put 0 for no dropout
-
-        "gamma": 0.99,
-
-        "optimizer": 'adam',
-
-        "is_early_stopping": False,  # True or False
-        "L2_hyperparam": 0,  # L2 hyperparameter for a full batch (entire dataset)
-
-        "save_plots": True,
-        "resume": False,
-        "render": False
-        }
-    ),
-
-    (1, {  # Imposed hyperparams for Assignment 2, Q1-c (CNN without BatchNorm)
-        "data_format": "array",  # "vector" or "array"
-        "input_size": 80*80,
-        "output_size": 1,
-
-        "model_type": 'CNN',# CNN or MLP
-        "nonlinearity": "relu",  # "relu", "sigmoid", "tanh"
-        "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
-
-        "mb_size": 10,
-        "max_updates": 1500,
-
-        "lr": 1e-4,
-        "momentum": 0.0,
-        "is_batch_norm": False,
-
-        "gamma": 0.99,
-
-        "optimizer": 'adam',
-
-        "is_early_stopping": False,  # True or False
-        "L2_hyperparam": 0,  # L2 hyperparameter for a full batch (entire dataset)
-
-        "save_plots": True,
-        "resume": False,
-        "render": False
-        }
-    ),
-
-    (2, {  # MOUNTAIN-CAR
-        "env": "MountainCar-v0", # Gym environment
-
-        "model_type": 'MLP',# CNN or MLP
-        "hidden_layers": [200, 50],
-        "nonlinearity": "relu",  # "relu", "sigmoid", "tanh"
-        "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
-
-        "mb_size": 10,
-        "max_updates": 1500,
-
-        "lr": 1e-4,
-        "momentum": 0.0,
-        "dropout": 0.0, # put 0 for no dropout
-
-        "gamma": 0.99, # Discount factor
-        'epsilon': 0.05, # For epsilon-greedy policy
-        'lambda': 0.9, # Eligibility parameter
-
-        "L2_hyperparam": 0,  # L2 hyperparameter for a full batch (entire dataset)
-
-        "use_cuda": False,
-        "save_plots": True,
-        "resume": False,
-        "render": True
-        }
-    ),
-
-    (3, {  # CART-POLE
+    (0, {  # CART-POLE
         "env": "CartPole-v1", # Gym environment
 
-        "model_type": 'MLP',# CNN or MLP
-        "hidden_layers": [200, 50],
-        "nonlinearity": "relu",  # "relu", "sigmoid", "tanh"
-        "initialization": "glorot",  # "standard", "glorot", "zero", "normal"
+        "hidden_layers": [128],
 
-        "mb_size": 10,
+        "mb_size": 1,
         "max_updates": 1500,
 
-        "lr": 1e-4,
-        "momentum": 0.0,
-        "dropout": 0.0, # put 0 for no dropout
+        "lr": 1e-3,
 
         "gamma": 0.99, # Discount factor
-        'epsilon': 0.05, # For epsilon-greedy policy
         'lambda': 0.9, # Eligibility parameter
-
-        "L2_hyperparam": 0,  # L2 hyperparameter for a full batch (entire dataset)
 
         "use_cuda": False,
         "save_plots": True,
         "resume": False,
-        "render": True
+        "render": False
+        }
+    ),
+
+    (1, {  # MOUNTAIN-CAR
+        "env": "MountainCar-v0", # Gym environment
+
+        "hidden_layers": [128],
+
+        "mb_size": 1,
+        "max_updates": 1500,
+
+        "lr": 1e-3,
+
+        "gamma": 0.99, # Discount factor
+        'lambda': 0.9, # Eligibility parameter
+
+        "use_cuda": False,
+        "save_plots": True,
+        "resume": False,
+        "render": False
         }
     ),
 

@@ -105,3 +105,6 @@ def save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, 
 
     return
 
+def normalize_observation(obs, env):
+    return (obs - env.observation_space.low) / (env.observation_space.high - env.observation_space.low)
+
