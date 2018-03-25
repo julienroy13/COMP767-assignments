@@ -92,7 +92,7 @@ class REINFORCE:
             self.optimizer.zero_grad()
 
     def save_policy(self, directory):
-        torch.save(self.policy.state_dict(), os.path.join(directory, "model_" + self.policy.name()))
+        torch.save(self.policy.state_dict(), os.path.join(directory, self.policy.name()+"_ckpt.pkl"))
 
     def load_policy(self, directory):
         model.load_state_dict(torch.load(os.path.join(directory, "model_" + self.policy.name())))

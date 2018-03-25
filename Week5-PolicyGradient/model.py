@@ -70,4 +70,4 @@ class MLP(nn.Module):
         return total_params
 
     def name(self):
-        return "Policy_Network"
+        return "PolicyNetwork"
