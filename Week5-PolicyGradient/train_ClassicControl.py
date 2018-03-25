@@ -33,6 +33,9 @@ def train_model(config, gpu_id, save_dir, exp_name):
 
     agent = REINFORCE(len(env.observation_space.sample()), config['hidden_layers'], env.action_space.n, config['lr'], config['use_cuda'], gpu_id)
 
+    if config['resume']:
+        agent.load_policy(directory=os.path.join(save_dir, exp_name))
+
     # TRAINING LOOP
     episode_number = 0
     running_average = None
@@ -52,6 +55,10 @@ def train_model(config, gpu_id, save_dir, exp_name):
             action, log_prob = agent.select_action(observation)
 
             observation, reward, done, _ = env.step(action)
+
+            if config['render']: 
+                screen = env.render(mode='rgb_array')
+                #plt.imsave("test.png", env.render(mode='rgb_array'))
 
             NLL_list.append(log_prob)
             reward_list.append(reward)

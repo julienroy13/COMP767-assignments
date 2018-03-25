@@ -43,7 +43,7 @@ myConfigs = (CarefulDict([
         "use_cuda": False,
         'chkp_freq': 100,
         "resume": False,
-        "render": False
+        "render": True
         }
     ),
 
