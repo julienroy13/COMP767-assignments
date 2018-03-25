@@ -86,7 +86,7 @@ def save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, 
     plt.legend(loc='best')
 
     plt.subplot(1,2,2)
-    plt.title("Number of steps", fontweight='bold')
+    plt.title("Episode Length", fontweight='bold')
     plt.plot(episode_lengths, color="blue", label="Agent")
     plt.xlabel("Episodes")
     plt.legend(loc='best')
