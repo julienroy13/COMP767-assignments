@@ -1,14 +1,17 @@
-import torch
-from torch.autograd import Variable
-import torch.optim as optim
-
 import os
 import numpy as np
+import sys
+import math
+
+import torch
+import torch.nn as nn
+from torch.autograd import Variable
+import pdb
 
 from model import MLP
 
-class REINFORCE(object):
 
+class REINFORCE:
     def __init__(self, obs_space_size, hidden_sizes, action_space_size, learning_rate, use_cuda, gpu_id):
 
         self.action_space_size = action_space_size
@@ -16,8 +19,8 @@ class REINFORCE(object):
         self.gpu_id = gpu_id
 
         # Initializes the policy network and optimizer
-        self.policy = MLP(obs_space_size, hidden_sizes, action_space_size, "relu", "glorot", 0, verbose=True)
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
+        self.policy = MLP(obs_space_size, hidden_sizes, action_space_size, "relu", "standard", verbose=True)
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=learning_rate)
 
         # Creates counters
         self.action_count = np.zeros(shape=(self.action_space_size,))
@@ -30,16 +33,18 @@ class REINFORCE(object):
             self.policy.cuda(gpu_id)
             print("USING GPU-{}".format(gpu_id))
 
+        self.policy.train()
+
     def select_action(self, observation):
 
         # Transforms the state into a torch Variable
-        x = Variable(torch.from_numpy(observation).float(), requires_grad=False)
+        x = Variable(torch.Tensor([observation]))
         
         if torch.cuda.is_available() and self.use_cuda:
-            x = x.cuda(gpu_id)
+            x = x.cuda(self.gpu_id)
         
         # Forward propagation through policy network
-        action_probs = self.policy(x).unsqueeze(0)      
+        action_probs = self.policy(x)     
         
         # Samples an action
         action = action_probs.multinomial().data
@@ -67,7 +72,7 @@ class REINFORCE(object):
             R = gamma * R + reward_list[i]
             Return_i = Variable(R)
             if torch.cuda.is_available() and self.use_cuda:
-                Return_i.cuda(gpu_id)
+                Return_i.cuda(self.gpu_id)
             
             # Loss is the NLL at each step weighted by the return for that step
             loss = loss + (NLL_list[i] * Return_i).squeeze()
@@ -81,10 +86,10 @@ class REINFORCE(object):
         return loss.cpu().data.numpy()
 
     def update_parameters(self):
-        # Clips the gradient and apply the update
-        torch.nn.utils.clip_grad_norm(self.policy.parameters(), 40)
-        self.optimizer.step()
-        self.optimizer.zero_grad()
+            # Clips the gradient and apply the update
+            torch.nn.utils.clip_grad_norm(self.policy.parameters(), 40)
+            self.optimizer.step()
+            self.optimizer.zero_grad()
 
     def save_policy(self, directory):
         torch.save(self.policy.state_dict(), os.path.join(directory, "model_" + self.policy.name()))

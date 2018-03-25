@@ -28,12 +28,12 @@ class CarefulDict(dict):
 myConfigs = (CarefulDict([
 
     (0, {  # CART-POLE
-        "env": "CartPole-v1", # Gym environment
+        "env_name": "CartPole-v1", # Gym environment
 
         "hidden_layers": [128],
 
         "mb_size": 1,
-        "max_updates": 1500,
+        "max_episodes": 5000,
 
         "lr": 1e-3,
 
@@ -41,19 +41,19 @@ myConfigs = (CarefulDict([
         'lambda': 0.9, # Eligibility parameter
 
         "use_cuda": False,
-        "save_plots": True,
+        'chkp_freq': 100,
         "resume": False,
         "render": False
         }
     ),
 
     (1, {  # MOUNTAIN-CAR
-        "env": "MountainCar-v0", # Gym environment
+        "env_name": "MountainCar-v0", # Gym environment
 
         "hidden_layers": [128],
 
         "mb_size": 1,
-        "max_updates": 1500,
+        "max_episodes": 5000,
 
         "lr": 1e-3,
 
@@ -61,7 +61,7 @@ myConfigs = (CarefulDict([
         'lambda': 0.9, # Eligibility parameter
 
         "use_cuda": False,
-        "save_plots": True,
+        'chkp_freq': 100,
         "resume": False,
         "render": False
         }
