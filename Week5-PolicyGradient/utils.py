@@ -69,7 +69,7 @@ def save_results_PONG(save_dir, exp_name, loss_tape, our_score_tape, opponent_sc
 
     return
 
-def save_results_MOUNTAINCAR(save_dir, exp_name, loss_tape, episode_lengths, config):
+def save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, config):
 
     # Creates the folder if necessary
     saving_dir = os.path.join(save_dir, exp_name)
