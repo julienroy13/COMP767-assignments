@@ -72,8 +72,8 @@ class REINFORCE:
             R = gamma * R + reward_list[i]
             Return_i = Variable(R)
             if torch.cuda.is_available() and self.use_cuda:
-                Return_i.cuda(self.gpu_id)
-            
+                Return_i = Return_i.cuda(self.gpu_id)
+                
             # Loss is the NLL at each step weighted by the return for that step
             loss = loss + (NLL_list[i] * Return_i).squeeze()
         
