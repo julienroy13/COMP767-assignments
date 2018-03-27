@@ -19,7 +19,7 @@ class REINFORCE:
         self.gpu_id = gpu_id
 
         # Initializes the policy network and optimizer
-        self.policy = MLP(obs_space_size, hidden_sizes, action_space_size, "relu", "standard", verbose=True)
+        self.policy = MLP(obs_space_size, hidden_sizes, action_space_size, "distribution", "relu", "standard", verbose=True)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=learning_rate)
 
         # Creates counters
