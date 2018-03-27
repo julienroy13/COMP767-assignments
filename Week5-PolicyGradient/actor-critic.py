@@ -1,3 +1,76 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+from torch.optim import Optimizer
+
+class SimpleOptim(Optimizer):
+    r"""
+    """
+
+    def __init__(self, params, lr, decay, discount):
+        defaults = dict(lr=lr, decay=decay, discount=discount)
+        if lr <= 0:
+            raise ValueError("learning rate (step size) must be strickly positive.")
+        if not (0 <= decay <= 1):
+            raise ValueError("trace-decay rate must be between 0 and 1.")
+        if not (0 <= discount <= 1):
+            raise ValueError("discount factor must be between 0 and 1.")
+        super(SimpleOptim, self).__init__(params, defaults)
+        
+        #
+        self.eligibilities  = dict()
+        self.I = 1
+        
+        # initialise eligibilities ([re]set to zero(0))
+        self._reset_eligibilities()
+
+    def __setstate__(self, state):
+        super(SimpleOptim, self).__setstate__(state)
+
+    def step(self, error, closure=None):
+        """
+        """
+        loss = None
+        if closure is not None:
+            loss = closure()
+                
+        # update parameters  
+        for i, group in enumerate(self.param_groups):
+            
+            #
+            _delta = error
+            
+            # parameters: trace-decay rates for policy and state-value,
+            #             step sizes for policy and state-value,
+            _alpha = group["lr"]
+            _lambda = group["decay"]
+            _gamma = group["decay"]
+            
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                # retrieve current eligibility
+                z = self.eligibilities[i][p]
+                # retrieve current gradient
+                grad = p.grad.data
+                # update eligibility
+                z.mul_(_gamma * _lambda_critic).add_(I, grad)
+                # update parameters
+                p.data.add_(_alpha_critic * _delta, z)
+                
+        #
+        self.I = _gamma * self.I
+        return loss
+    
+    def _reset_eligibilities(self):
+        for i, group in enumerate(self.param_groups):
+            zs = dict()
+            for p in group["params"]:
+                zs[p] = torch.zeros_like(p.data)
+            self.eligibilities[i] = zs
+            
+            
 class ActorCritic(object):
     def __init__(self, actor, critic, discount, lr_critic, lr_actor, decay_critic, decay_actor):
         
@@ -21,24 +94,8 @@ class ActorCritic(object):
         self._alpha_actor   = lr_actor
         
         #
-        critic_eligibilities = dict()
-        actor_eligibilities  = dict()
-        I = 1
-        
-
-        # initialise critic eligibilities ([re]set to zero(0))
-        for i, group in enumerate(critic_optimizer.param_groups):
-            zs = dict()
-            for p in group["params"]:
-                zs[p] = torch.zeros_like(p.data)
-            critic_eligibilities[i] = zs
-
-        # initialise actor eligibilities ([re]set to zero(0))
-        for i, group in enumerate(actor_optimizer.param_groups):
-            zs = dict()
-            for p in group["params"]:
-                zs[p] = torch.zeros_like(p.data)
-            actor_eligibilities[i] = zs
+        critic_optimizer = SimpleOptim(critic.parameters, lr_critic, decay_critic, discount)
+        actor_optimizer  = SimpleOptim(actor.parameters, lr_critic, decay_critic, discount)
         
         #
         self.state = None
@@ -75,42 +132,10 @@ class ActorCritic(object):
         error = reward + (_gamma * self.critic(obs)) - self.critic(self.state)
         _delta = error.cpu().data
         # update critic's parameters  
-        for i, group in enumerate(critic_optimizer.param_groups):
-
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                # retrieve current eligibility
-                z = critic_eligibilities[i][p]
-                # retrieve current gradient
-                grad = p.grad.data
-                # update eligibility
-                z.mul_(_gamma * _lambda_critic).add_(I, grad)
-                # update parameters
-                p.data.add_(_alpha_critic * _delta * z)
-                # reset gradients
-                p.grad.detach_()
-                p.grad.zero_()
+        critic_optimizer.step(error=_delta)
                 
         # update actor's parameters     
-        for i, group in enumerate(actor_optimizer.param_groups):
-
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                # retrieve current eligibility
-                z = actor_eligibilities[i][p]
-                # retrieve current gradient
-                grad = p.grad.data
-                # update eligibility
-                z.mul_(_gamma * _lambda_actor).add_(I, grad)
-                # update parameters
-                p.data.add_(_alpha_actor * _delta * z)
-                # reset gradients
-                p.grad.detach_()
-                p.grad.zero_()
-        #
-            self.I = _gamma * self.I
+        actor_optimizer.step(error=_delta)
     
     def reset_counters(self, observation):
         # to torch.autograd.Variable if necessary
