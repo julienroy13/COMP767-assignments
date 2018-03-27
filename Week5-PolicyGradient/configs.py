@@ -45,7 +45,7 @@ myConfigs = (CarefulDict([
         'chkp_freq': 100,
         "resume": False,
         "render": False,
-        "video_ckpt": [1, 2, 3, 4, 5, 501, 502, 503, 504, 505]
+        "video_ckpt": []
         }
     ),
 

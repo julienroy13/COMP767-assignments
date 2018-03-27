@@ -69,7 +69,7 @@ def save_results_PONG(save_dir, exp_name, loss_tape, our_score_tape, opponent_sc
 
     return
 
-def save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, config):
+def save_results_classicControl(save_dir, exp_name, episode_lengths, config):
 
     # Creates the folder if necessary
     saving_dir = os.path.join(save_dir, exp_name)
@@ -79,13 +79,6 @@ def save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, 
     # Creates and save the plots
     plt.figure(figsize=(20, 6))
 
-    plt.subplot(1,2,1)
-    plt.title("Loss", fontweight='bold')
-    plt.plot(loss_tape, color="blue", label="Agent")
-    plt.xlabel("Episodes")
-    plt.legend(loc='best')
-
-    plt.subplot(1,2,2)
     plt.title("Episode Length", fontweight='bold')
     plt.plot(episode_lengths, color="blue", label="Agent")
     plt.xlabel("Episodes")
@@ -99,7 +92,6 @@ def save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, 
     with open(log_file, 'wb') as f:
         pickle.dump({
             'config': config,
-            'loss_tape': loss_tape,
             'episode_lengths': episode_lengths,
             }, f, protocol=pickle.HIGHEST_PROTOCOL)
 

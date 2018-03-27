@@ -87,7 +87,7 @@ def train_model(config, gpu_id, save_dir, exp_name):
 
         if episode_number % config['chkp_freq'] == 0:
             agent.save_policy(directory=os.path.join(save_dir, exp_name))
-            utils.save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, config)
+            utils.save_results_classicControl(save_dir, exp_name, episode_lengths, config)
             
     env.close()
 

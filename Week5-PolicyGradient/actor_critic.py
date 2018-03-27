@@ -3,13 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.optim import Optimizer
+import pdb
 
 class SimpleOptim(Optimizer):
     """
     """
 
-    def __init__(self, params, lr, decay):
-        defaults = dict(lr=lr, decay=decay)
+    def __init__(self, params, lr, decay, discount):
+        defaults = dict(lr=lr, decay=decay, discount=discount)
         if lr <= 0:
             raise ValueError("learning rate (step size) must be strickly positive.")
         if not (0 <= decay <= 1):
@@ -43,7 +44,7 @@ class SimpleOptim(Optimizer):
             #             step sizes for policy and state-value,
             _alpha = group["lr"]
             _lambda = group["decay"]
-            _gamma = group["decay"]
+            _gamma = group["discount"]
             
             for p in group["params"]:
                 if p.grad is None:
@@ -53,13 +54,12 @@ class SimpleOptim(Optimizer):
                 # retrieve current gradient
                 grad = p.grad.data
                 # update eligibility
-                z.mul_(_gamma * _lambda_critic).add_(I, grad)
+                z.mul_(_gamma * _lambda).add_(self.I, grad)
                 # update parameters
-                p.data.add_(_alpha_critic * _delta, z)
+                p.data.add_(_alpha * _delta * z)
                 
         #
         self.I = _gamma * self.I
-        return loss
     
     def _reset_eligibilities(self):
         for i, group in enumerate(self.param_groups):
@@ -70,17 +70,20 @@ class SimpleOptim(Optimizer):
             
             
 class ActorCritic(object):
-    def __init__(self, actor, critic, discount, lr_critic, lr_actor, decay_critic, decay_actor):
+    def __init__(self, actor, critic, discount, lr_critic, lr_actor, decay_critic, decay_actor, use_cuda, gpu_id):
         
+        self.use_cuda = use_cuda
+        self.gpu_id = gpu_id
+
         # models: a differentiable policy parameterization (actor),
         #         a differentiable state-value parameterization (critic).
         self.actor  = actor
         self.critic = critic
         
         # push to GPU device if available
-        if torch.cuda.is_available():
-            critic = critic.cuda()
-            actor  = actor.cuda()
+        if torch.cuda.is_available() and self.use_cuda:
+            self.critic = self.critic.cuda(gpu_id)
+            self.actor  = self.actor.cuda(gpu_id)
         
         # parameters: trace-decay rates for policy and state-value,
         #             step sizes for policy and state-value,
@@ -91,8 +94,8 @@ class ActorCritic(object):
         self._gamma         = discount
         
         #
-        critic_optimizer = SimpleOptim(critic.parameters, lr_critic, decay_critic)
-        actor_optimizer  = SimpleOptim(actor.parameters, lr_actor, decay_actor)
+        self.critic_optimizer = SimpleOptim(critic.parameters(), lr_critic, decay_critic, discount)
+        self.actor_optimizer  = SimpleOptim(actor.parameters(), lr_actor, decay_actor, discount)
         
         #
         self.state = None
@@ -111,16 +114,14 @@ class ActorCritic(object):
     
     def compute_gradients(self, action):
         # brackward propagation for state-value function
-        v = critic(state)
+        v = self.critic(self.state)
         v.backward()
         # backward propagation for log-probability of the selected action
-        probas = actor(state)
+        probas = self.actor(self.state)
         log_proba = torch.log(probas)[:, action]
         log_proba.backward()
-        
-        return None
     
-    def update_parameters(self, observation):
+    def update_parameters(self, observation, reward):
         
         # to torch.autograd.Variable if necessary
         obs = self._convert(observation)
@@ -129,14 +130,14 @@ class ActorCritic(object):
         error = reward + (self._gamma * self.critic(obs)) - self.critic(self.state)
         _delta = error.cpu().data
         # update critic's parameters
-        critic_optimizer.zerp_grad()
-        critic_optimizer.step(error=_delta)
+        self.critic_optimizer.step(error=_delta)
+        self.critic_optimizer.zero_grad()
                 
         # update actor's parameters     
-        actor_optimizer.zerp_grad()
-        actor_optimizer.step(error=_delta)
+        self.actor_optimizer.step(error=_delta)
+        self.actor_optimizer.zero_grad()
     
-    def reset_counters(self, observation):
+    def set_state(self, observation):
         # to torch.autograd.Variable if necessary
         state = self._convert(observation)
         # save state
@@ -146,8 +147,8 @@ class ActorCritic(object):
         # to torch.autograd.Variable if necessary
         if not isinstance(x, Variable):
             s = Variable(torch.Tensor([x]))  
-            if torch.cuda.is_available():
-                s = s.cuda()
+            if torch.cuda.is_available() and self.use_cuda:
+                s = s.cuda(gpu_id)
         else:
             s = x
         return s

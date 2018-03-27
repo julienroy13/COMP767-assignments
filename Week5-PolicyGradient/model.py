@@ -40,7 +40,7 @@ class MLP(nn.Module):
             output = F.softmax(self.out(x), dim=1)
 
         elif self.out_type == "real_values":
-            output = x
+            output = self.out(x)
 
         return output
 

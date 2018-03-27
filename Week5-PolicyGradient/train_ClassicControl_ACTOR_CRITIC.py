@@ -6,7 +6,7 @@ import torch.optim as optim
 
 import utils
 from model import MLP
-from agent import REINFORCE
+from actor_critic import ActorCritic
 
 from configs import myConfigs
 import os
@@ -31,10 +31,14 @@ def train_model(config, gpu_id, save_dir, exp_name):
     torch.manual_seed(123)
     np.random.seed(123)
 
-    agent = REINFORCE(len(env.observation_space.sample()), config['hidden_layers'], env.action_space.n, config['lr'], config['use_cuda'], gpu_id)
+    actor = MLP(len(env.observation_space.sample()), config['hidden_layers'], env.action_space.n, "distribution", "relu", "standard", verbose=True)
+    critic = MLP(len(env.observation_space.sample()), config['hidden_layers'], 1, "real_values", "relu", "standard", verbose=True)
 
+    agent = ActorCritic(actor, critic, config['gamma'], lr_critic=1e-3, lr_actor=1e-5, decay_critic=0.9, decay_actor=0.9, use_cuda=config['use_cuda'], gpu_id=gpu_id)
+    """
     if config['resume']:
         agent.load_policy(directory=os.path.join(save_dir, exp_name))
+    """
 
     # TRAINING LOOP
     episode_number = 0
@@ -45,14 +49,14 @@ def train_model(config, gpu_id, save_dir, exp_name):
         # Book Keeping
         episode_number += 1
         observation = env.reset()
-        NLL_list, reward_list = [], []
-        agent.reset_counters()
+        reward_list = []
+        agent.set_state(observation)
         
         done = False
         t = 0
         # RUN ONE EPISODE
         while not(done) and t < config['max_steps']:
-            action, log_prob = agent.select_action(observation)
+            action = agent.select_action(observation)
             observation, reward, done, _ = env.step(action)
 
             if config['env_name'] == "MountainCar-v0":
@@ -68,16 +72,15 @@ def train_model(config, gpu_id, save_dir, exp_name):
                     os.makedirs(video_folder)
                 plt.imsave(os.path.join(video_folder, "ep{}_{}.png".format(episode_number, t)), image)
 
-            NLL_list.append(log_prob)
+            # UPDATE THE PARAMETERS (for Temporal-Difference method)
+            agent.compute_gradients(action)
+            agent.update_parameters(observation, reward)
+
             reward_list.append(reward)
+            agent.set_state(observation)
             t += 1
 
-        # UPDATE THE PARAMETERS (for Monte-Carlo method)
-        loss = agent.compute_gradients(reward_list, NLL_list, config['gamma'])
-        agent.update_parameters()
-
         # More book-keeping
-        loss_tape.append(loss)
         episode_lengths.append(len(reward_list))
         if running_average is None:
             running_average = np.sum(reward_list)
@@ -86,8 +89,8 @@ def train_model(config, gpu_id, save_dir, exp_name):
         print("Episode: {}, reward: {}, average: {:.2f}".format(episode_number, np.sum(reward_list), running_average))
 
         if episode_number % config['chkp_freq'] == 0:
-            agent.save_policy(directory=os.path.join(save_dir, exp_name))
-            utils.save_results_classicControl(save_dir, exp_name, loss_tape, episode_lengths, config)
+            #agent.save_policy(directory=os.path.join(save_dir, exp_name))
+            utils.save_results_classicControl(save_dir, exp_name, episode_lengths, config)
             
     env.close()
 
