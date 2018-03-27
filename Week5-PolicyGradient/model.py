@@ -6,7 +6,7 @@ import pdb
 
 class MLP(nn.Module):
 
-    def __init__(self, inp_size, h_sizes, out_size, nonlinearity, init_type, verbose=False):
+    def __init__(self, inp_size, h_sizes, out_size, out_type, nonlinearity, init_type, verbose=False):
 
         super(MLP, self).__init__()
 
@@ -17,6 +17,8 @@ class MLP(nn.Module):
 
         # Output layer
         self.out = nn.Linear(h_sizes[-1], out_size)
+
+        self.out_type = out_type
 
         # Initializes the parameters
         self.init_parameters(init_type)
@@ -34,7 +36,11 @@ class MLP(nn.Module):
             a = layer(x)
             x = F.relu(a)
 
-        output = F.softmax(self.out(x), dim=1)
+        if self.out_type == "distribution":
+            output = F.softmax(self.out(x), dim=1)
+
+        elif self.out_type == "real_values":
+            output = x
 
         return output
 

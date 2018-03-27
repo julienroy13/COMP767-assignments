@@ -29,6 +29,7 @@ myConfigs = (CarefulDict([
 
     (0, {  # CART-POLE
         "env_name": "CartPole-v1", # Gym environment
+        'max_steps': 200,
 
         "hidden_layers": [128],
 
@@ -43,12 +44,14 @@ myConfigs = (CarefulDict([
         "use_cuda": False,
         'chkp_freq': 100,
         "resume": False,
-        "render": False
+        "render": False,
+        "video_ckpt": [1, 2, 3, 4, 5, 501, 502, 503, 504, 505]
         }
     ),
 
     (1, {  # MOUNTAIN-CAR
         "env_name": "MountainCar-v0", # Gym environment
+        'max_steps': 5000,
 
         "hidden_layers": [128],
 
@@ -63,12 +66,14 @@ myConfigs = (CarefulDict([
         "use_cuda": False,
         'chkp_freq': 100,
         "resume": False,
-        "render": False
+        "render": False,
+        "video_ckpt": []
         }
     ),
 
     (2, {  # ACROBOT
         "env_name": "Acrobot-v1", # Gym environment
+        'max_steps': 5000,
 
         "hidden_layers": [128],
 
@@ -83,7 +88,8 @@ myConfigs = (CarefulDict([
         "use_cuda": False,
         'chkp_freq': 100,
         "resume": False,
-        "render": False
+        "render": False,
+        "video_ckpt": [1, 2, 3, 4, 5, 501, 502, 503, 504, 505]
         }
     ),
 

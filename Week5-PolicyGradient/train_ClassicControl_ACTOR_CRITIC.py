@@ -51,20 +51,28 @@ def train_model(config, gpu_id, save_dir, exp_name):
         done = False
         t = 0
         # RUN ONE EPISODE
-        while not(done) and t < 200:
+        while not(done) and t < config['max_steps']:
             action, log_prob = agent.select_action(observation)
-
             observation, reward, done, _ = env.step(action)
 
+            if config['env_name'] == "MountainCar-v0":
+                done = bool(observation[0] >= 0.5)
+
             if config['render']: 
-                screen = env.render(mode='rgb_array')
-                #plt.imsave("test.png", env.render(mode='rgb_array'))
+                env.render()
+                
+            if episode_number in config['video_ckpt']:
+                image = env.render(mode='rgb_array')
+                video_folder = os.path.join(save_dir, exp_name, "video_ckpts".format(episode_number))
+                if not os.path.exists(video_folder):
+                    os.makedirs(video_folder)
+                plt.imsave(os.path.join(video_folder, "ep{}_{}.png".format(episode_number, t)), image)
 
             NLL_list.append(log_prob)
             reward_list.append(reward)
             t += 1
 
-        # UPDATE THE PARAMETERS
+        # UPDATE THE PARAMETERS (for Monte-Carlo method)
         loss = agent.compute_gradients(reward_list, NLL_list, config['gamma'])
         agent.update_parameters()
 
