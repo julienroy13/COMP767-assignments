@@ -128,10 +128,12 @@ class ActorCritic(object):
         # compute TD error
         error = reward + (self._gamma * self.critic(obs)) - self.critic(self.state)
         _delta = error.cpu().data
-        # update critic's parameters  
+        # update critic's parameters
+        critic_optimizer.zerp_grad()
         critic_optimizer.step(error=_delta)
                 
         # update actor's parameters     
+        actor_optimizer.zerp_grad()
         actor_optimizer.step(error=_delta)
     
     def reset_counters(self, observation):
