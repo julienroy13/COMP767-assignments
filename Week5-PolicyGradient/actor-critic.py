@@ -5,17 +5,15 @@ from torch.autograd import Variable
 from torch.optim import Optimizer
 
 class SimpleOptim(Optimizer):
-    r"""
+    """
     """
 
-    def __init__(self, params, lr, decay, discount):
-        defaults = dict(lr=lr, decay=decay, discount=discount)
+    def __init__(self, params, lr, decay):
+        defaults = dict(lr=lr, decay=decay)
         if lr <= 0:
             raise ValueError("learning rate (step size) must be strickly positive.")
         if not (0 <= decay <= 1):
             raise ValueError("trace-decay rate must be between 0 and 1.")
-        if not (0 <= discount <= 1):
-            raise ValueError("discount factor must be between 0 and 1.")
         super(SimpleOptim, self).__init__(params, defaults)
         
         #
@@ -87,15 +85,14 @@ class ActorCritic(object):
         # parameters: trace-decay rates for policy and state-value,
         #             step sizes for policy and state-value,
         #             discount factor.
+        
+        if not (0 <= discount <= 1):
+            raise ValueError("discount factor must be between 0 and 1.")
         self._gamma         = discount
-        self._lambda_critic = decay_critic
-        self._lambda_actor  = decay_actor
-        self._alpha_critic  = lr_critic
-        self._alpha_actor   = lr_actor
         
         #
-        critic_optimizer = SimpleOptim(critic.parameters, lr_critic, decay_critic, discount)
-        actor_optimizer  = SimpleOptim(actor.parameters, lr_critic, decay_critic, discount)
+        critic_optimizer = SimpleOptim(critic.parameters, lr_critic, decay_critic)
+        actor_optimizer  = SimpleOptim(actor.parameters, lr_actor, decay_actor)
         
         #
         self.state = None
@@ -129,7 +126,7 @@ class ActorCritic(object):
         obs = self._convert(observation)
             
         # compute TD error
-        error = reward + (_gamma * self.critic(obs)) - self.critic(self.state)
+        error = reward + (self._gamma * self.critic(obs)) - self.critic(self.state)
         _delta = error.cpu().data
         # update critic's parameters  
         critic_optimizer.step(error=_delta)
