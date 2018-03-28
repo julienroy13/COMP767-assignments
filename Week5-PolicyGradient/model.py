@@ -6,9 +6,11 @@ import pdb
 
 class MLP(nn.Module):
 
-    def __init__(self, inp_size, h_sizes, out_size, out_type, nonlinearity, init_type, verbose=False):
+    def __init__(self, inp_size, h_sizes, out_size, out_type, nonlinearity, init_type, name, verbose=False):
 
         super(MLP, self).__init__()
+
+        self.name = name
 
         # Hidden layers
         self.hidden = nn.ModuleList([nn.Linear(inp_size, h_sizes[0])])
@@ -34,7 +36,7 @@ class MLP(nn.Module):
         # Feedforward
         for layer in self.hidden:
             a = layer(x)
-            x = F.relu(a)
+            x = F.elu(a)
 
         if self.out_type == "distribution":
             output = F.softmax(self.out(x), dim=1)
@@ -74,6 +76,3 @@ class MLP(nn.Module):
             total_params += total_size
 
         return total_params
-
-    def name(self):
-        return "PolicyNetwork"

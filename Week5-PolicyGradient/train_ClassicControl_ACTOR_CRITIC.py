@@ -27,12 +27,12 @@ def train_model(config, gpu_id, save_dir, exp_name):
 
     env = gym.make(config['env_name'])
 
-    env.seed(123)
-    torch.manual_seed(123)
-    np.random.seed(123)
+    env.seed(1234)
+    torch.manual_seed(1234)
+    np.random.seed(1234)
 
-    actor = MLP(len(env.observation_space.sample()), config['hidden_layers'], env.action_space.n, "distribution", "relu", "standard", verbose=True)
-    critic = MLP(len(env.observation_space.sample()), config['hidden_layers'], 1, "real_values", "relu", "standard", verbose=True)
+    actor = MLP(len(env.observation_space.sample()), config['hidden_layers'], env.action_space.n, "distribution", "relu", "standard", name="ActorNetwork", verbose=True)
+    critic = MLP(len(env.observation_space.sample()), config['hidden_layers'], 1, "real_values", "relu", "standard", name="CriticNetwork", verbose=True)
 
     agent = ActorCritic(actor, critic, config['gamma'], lr_critic=1e-3, lr_actor=1e-5, decay_critic=0.9, decay_actor=0.9, use_cuda=config['use_cuda'], gpu_id=gpu_id)
     """

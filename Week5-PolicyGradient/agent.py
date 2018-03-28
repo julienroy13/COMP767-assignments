@@ -19,7 +19,7 @@ class REINFORCE:
         self.gpu_id = gpu_id
 
         # Initializes the policy network and optimizer
-        self.policy = MLP(obs_space_size, hidden_sizes, action_space_size, "distribution", "relu", "standard", verbose=True)
+        self.policy = MLP(obs_space_size, hidden_sizes, action_space_size, "distribution", "relu", "standard", name="PolicyNetwork", verbose=True)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=learning_rate)
 
         # Creates counters
@@ -92,10 +92,10 @@ class REINFORCE:
             self.optimizer.zero_grad()
 
     def save_policy(self, directory):
-        torch.save(self.policy.state_dict(), os.path.join(directory, self.policy.name()+"_ckpt.pkl"))
+        torch.save(self.policy.state_dict(), os.path.join(directory, self.policy.name + "_ckpt.pkl"))
 
     def load_policy(self, directory):
-        model.load_state_dict(torch.load(os.path.join(directory, "model_" + self.policy.name())))
+        model.load_state_dict(torch.load(os.path.join(directory, "model_" + self.policy.name)))
 
     def reset_counters(self):
 
